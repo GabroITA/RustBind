@@ -1,0 +1,77 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify tag matches workspace version
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          $tagVersion = "${{ github.ref_name }}".TrimStart('v')
+          $meta = cargo metadata --no-deps --format-version 1 | ConvertFrom-Json
+          $pkgVersion = ($meta.packages | Where-Object { $_.name -eq "rustbind" } | Select-Object -First 1).version
+          if ($tagVersion -ne $pkgVersion) {
+            throw "Tag version ($tagVersion) does not match workspace version ($pkgVersion)."
+          }
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+          components: rustfmt, clippy
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Install WiX Toolset v4
+        shell: pwsh
+        run: |
+          dotnet tool install --global wix --version 4.0.5
+          $wixExe = Join-Path $env:USERPROFILE ".dotnet\tools\wix.exe"
+          & $wixExe extension add -g WixToolset.UI.wixext/4.0.5
+          & $wixExe extension add -g WixToolset.Util.wixext/4.0.5
+          echo "$env:USERPROFILE\.dotnet\tools" >> $env:GITHUB_PATH
+
+      - name: Test and package release (ZIP + MSI + SHA-256)
+        run: cargo xtask package --run-tests --build-msi
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: rustbind-windows-x64
+          path: |
+            dist/*.zip
+            dist/*.msi
+            dist/*.sha256.txt
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            dist/*.zip
+            dist/*.msi
+            dist/*.sha256.txt

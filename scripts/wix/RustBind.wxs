@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+  <Package
+    Name="RustBind"
+    Manufacturer="RustBind"
+    Version="$(var.Version)"
+    UpgradeCode="9f5c02b1-7a3b-4c6e-91c2-5b887a1d4f20"
+    Scope="perUser">
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="RustBind.ico" SourceFile="$(var.RepoDir)\assets\rustbind.ico" />
+    <Property Id="ARPPRODUCTICON" Value="RustBind.ico" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/GabroITA/RustBind" />
+
+    <WixVariable Id="WixUILicenseRtf" Value="$(var.RepoDir)\scripts\wix\license.rtf" />
+    <WixVariable Id="WixUIBannerBmp" Value="$(var.RepoDir)\scripts\wix\banner.bmp" />
+    <WixVariable Id="WixUIDialogBmp" Value="$(var.RepoDir)\scripts\wix\dialog.bmp" />
+
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch RustBind after setup finishes" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
+    <Property Id="WixShellExecTarget" Value="[#rustbind_ui.exe]" />
+
+    <CustomAction
+      Id="LaunchApplication"
+      BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)"
+      DllEntry="WixShellExec"
+      Impersonate="yes" />
+
+    <util:CloseApplication
+      Id="CloseRustBindDaemon"
+      Target="rustbind.exe"
+      CloseMessage="yes"
+      EndSessionMessage="yes"
+      RebootPrompt="no" />
+    <util:CloseApplication
+      Id="CloseRustBindUi"
+      Target="rustbind-ui.exe"
+      CloseMessage="yes"
+      RebootPrompt="no" />
+
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="ProgramsFolder" Name="Programs">
+        <Directory Id="INSTALLFOLDER" Name="RustBind" />
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="RustBind" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="DesktopFolder" />
+
+    <ComponentGroup Id="CoreBinaries" Directory="INSTALLFOLDER">
+      <Component Id="RustBindDaemonExe" Guid="1a7b1c50-3c4e-4b88-901a-6a1f2d9b8001">
+        <File Id="rustbind.exe" Source="$(var.BinDir)\rustbind.exe" KeyPath="yes" />
+      </Component>
+      <Component Id="RustBindUiExe" Guid="2b8c2d61-4d5f-4c99-a12b-7b2e3e0c9002">
+        <File Id="rustbind_ui.exe" Source="$(var.BinDir)\rustbind-ui.exe" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <Component Id="RustBindCtlExe" Directory="INSTALLFOLDER" Guid="3c9d3e72-5e60-4daa-b23c-8c3f4f1da003">
+      <File Id="rustbindctl.exe" Source="$(var.BinDir)\rustbindctl.exe" KeyPath="yes" />
+    </Component>
+
+    <Component Id="UserPathEnvComponent" Directory="INSTALLFOLDER" Guid="5eaf5a94-7a82-4fcc-d45e-ae51613fc105">
+      <RegistryValue
+        Root="HKCU"
+        Key="Software\RustBind\Installer"
+        Name="path_added"
+        Type="integer"
+        Value="1"
+        KeyPath="yes" />
+      <Environment
+        Id="RustBindUserPath"
+        Name="PATH"
+        Value="[INSTALLFOLDER]"
+        Permanent="no"
+        Part="last"
+        Action="set"
+        System="no" />
+    </Component>
+
+    <Component Id="ApplicationShortcuts" Directory="ApplicationProgramsFolder" Guid="4dae4f83-6f71-4ebb-c34d-9d40502eb004">
+      <Shortcut
+        Id="StartMenuRustBindUi"
+        Name="RustBind"
+        Description="RustBind hotkey and input automation configurator"
+        Target="[INSTALLFOLDER]rustbind-ui.exe"
+        WorkingDirectory="INSTALLFOLDER"
+        Icon="RustBind.ico" />
+      <RemoveFolder Id="CleanUpShortcuts" On="uninstall" />
+      <RegistryValue
+        Root="HKCU"
+        Key="Software\RustBind\Installer"
+        Name="start_menu_shortcut"
+        Type="integer"
+        Value="1"
+        KeyPath="yes" />
+    </Component>
+
+    <Component Id="DesktopShortcut" Directory="DesktopFolder" Guid="6fb06ba5-8b93-40dd-e56f-bf627240d206">
+      <Shortcut
+        Id="DesktopRustBindUi"
+        Name="RustBind"
+        Description="RustBind hotkey and input automation configurator"
+        Target="[INSTALLFOLDER]rustbind-ui.exe"
+        WorkingDirectory="INSTALLFOLDER"
+        Icon="RustBind.ico" />
+      <RegistryValue
+        Root="HKCU"
+        Key="Software\RustBind\Installer"
+        Name="desktop_shortcut"
+        Type="integer"
+        Value="1"
+        KeyPath="yes" />
+    </Component>
+
+    <Component Id="AutostartRegistry" Directory="INSTALLFOLDER" Guid="7ac17cb6-9ca4-41ee-f670-ca738351e307">
+      <RegistryValue
+        Root="HKCU"
+        Key="Software\Microsoft\Windows\CurrentVersion\Run"
+        Name="RustBind"
+        Type="string"
+        Value="&quot;[INSTALLFOLDER]rustbind.exe&quot;"
+        KeyPath="yes" />
+    </Component>
+
+    <Feature
+      Id="MainFeature"
+      Title="RustBind (Daemon &amp; Configurator UI)"
+      Description="Core background hotkey daemon (rustbind.exe) and visual configurator (rustbind-ui.exe)."
+      Level="1"
+      AllowAbsent="no"
+      Display="expand"
+      ConfigurableDirectory="INSTALLFOLDER">
+      <ComponentGroupRef Id="CoreBinaries" />
+
+      <Feature
+        Id="CliFeature"
+        Title="Command-Line Tool (rustbindctl.exe)"
+        Description="Optional console IPC utility (status, suspend, resume, reload)."
+        Level="1"
+        Display="expand">
+        <ComponentRef Id="RustBindCtlExe" />
+
+        <Feature
+          Id="CliPathFeature"
+          Title="Add RustBind folder to user PATH"
+          Description="Appends the installation directory to your user PATH so rustbindctl can run from any terminal."
+          Level="2">
+          <ComponentRef Id="UserPathEnvComponent" />
+        </Feature>
+      </Feature>
+
+      <Feature
+        Id="StartMenuShortcutFeature"
+        Title="Start Menu Shortcut"
+        Description="Creates a RustBind shortcut in your Windows Start Menu."
+        Level="1">
+        <ComponentRef Id="ApplicationShortcuts" />
+      </Feature>
+
+      <Feature
+        Id="DesktopShortcutFeature"
+        Title="Desktop Shortcut"
+        Description="Creates a RustBind shortcut on your Desktop."
+        Level="2">
+        <ComponentRef Id="DesktopShortcut" />
+      </Feature>
+
+      <Feature
+        Id="AutostartFeature"
+        Title="Start Daemon on Windows Sign-In"
+        Description="Registers rustbind.exe in HKCU\...\Run so the tray daemon starts automatically on Windows sign-in."
+        Level="2">
+        <ComponentRef Id="AutostartRegistry" />
+      </Feature>
+    </Feature>
+
+    <UI>
+      <ui:WixUI Id="WixUI_FeatureTree" />
+      <Publish
+        Dialog="ExitDialog"
+        Control="Finish"
+        Event="DoAction"
+        Value="LaunchApplication"
+        Condition="WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 and NOT Installed" />
+    </UI>
+  </Package>
+</Wix>

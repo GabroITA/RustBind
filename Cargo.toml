@@ -1,0 +1,30 @@
+[workspace]
+members = [".", "ui", "xtask"]
+default-members = [".", "ui"]
+
+[workspace.package]
+version = "1.0.0"
+edition = "2024"
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/GabroITA/RustBind"
+description = "Safe Windows hotkey and keyboard/mouse input automation daemon and CLI"
+
+[package]
+name = "rustbind"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+readme.workspace = true
+repository.workspace = true
+description.workspace = true
+
+[dependencies]
+directories = "6.0.0"
+serde = { version = "1.0.229", features = ["derive"] }
+static_assertions = "1.1.0"
+thiserror = "2.0.21"
+toml = "1.2.0"
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", default-features = false, features = ["fmt", "std"] }
+windows = { version = "0.62.2", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Accessibility", "Win32_System_LibraryLoader", "Win32_Graphics_Gdi", "Win32_UI_Shell", "Win32_UI_Controls_Dialogs", "Win32_System_Threading", "Win32_Security", "Win32_System_Pipes", "Win32_Security_Authorization", "Win32_System_Memory", "Win32_System_IO", "Win32_Storage_FileSystem", "Win32_System_Registry", "Win32_Networking_WinHttp"] }
